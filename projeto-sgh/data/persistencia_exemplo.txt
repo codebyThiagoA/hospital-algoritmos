@@ -1,0 +1,7 @@
+PACIENTES 2
+# Exemplo de persistência: dois pacientes com históricos
+P|Maria Clara|123.456.789-00|30|1|2
+A|2025-10-10 09:00|Triagem inicial
+A|2025-10-10 10:30|Consulta com clínico geral
+P|João Silva|987.654.321-11|45|0|1
+A|2025-10-11 14:00|Coleta de exames laboratoriais
