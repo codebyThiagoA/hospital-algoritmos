@@ -1,5 +1,6 @@
 #ifndef PACIENTE_H
 #define PACIENTE_H
+#include "historico.h"
 
 typedef struct Atendimento Atendimento; // declaração antecipada
 
@@ -8,7 +9,7 @@ typedef struct Paciente {
     char cpf[15];
     int idade;
     int prioridade; // 1 = alta, 2 = média, 3 = baixa
-    Atendimento *historico; // ponteiro para pilha de atendimentos
+    Historico historico;
     struct Paciente *proximo; // lista encadeada de pacientes
 } Paciente;
 

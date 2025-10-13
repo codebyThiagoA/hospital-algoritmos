@@ -10,7 +10,7 @@ Paciente* criarPaciente(const char *nome, const char *cpf, int idade, int priori
     strcpy(novo->cpf, cpf);
     novo->idade = idade;
     novo->prioridade = prioridade;
-    novo->historico = NULL;
+    inicializarHistorico(&novo->historico); 
     novo->proximo = NULL;
     return novo;
 }
