@@ -16,6 +16,19 @@ static Paciente* g_lista = NULL;
 static Fila g_fila;
 static int g_demo_inicializado = 0;
 
+// Prototipos locais para evitar declaracoes implicitas
+static void acionarCadastro(void);
+static void acionarFila(void);
+static void acionarAtendimento(void);
+static void acionarHistorico(void);
+static void acionarPersistencia(void);
+
+static void trim_nl(char* s) {
+    if (!s) return;
+    size_t i = strlen(s);
+    if (i && (s[i-1] == '\n' || s[i-1] == '\r')) s[i-1] = '\0';
+}
+
 static void limparEntrada(void) {
     int c; while ((c = getchar()) != '\n' && c != EOF) {}
 }
@@ -81,9 +94,11 @@ static void acionarCadastro(void) {
     int idade, prioridade;
 
     printf("Nome: ");
-    if (!fgets(nome, sizeof(nome), stdin)) return; { size_t i=strlen(nome); if (i && nome[i-1]=='\n') nome[i-1]=0; }
+    if (!fgets(nome, sizeof(nome), stdin)) return;
+    trim_nl(nome);
     printf("CPF: ");
-    if (!fgets(cpf, sizeof(cpf), stdin)) return; { size_t i=strlen(cpf); if (i && cpf[i-1]=='\n') cpf[i-1]=0; }
+    if (!fgets(cpf, sizeof(cpf), stdin)) return;
+    trim_nl(cpf);
     printf("Idade: "); if (scanf("%d", &idade) != 1) { limparEntrada(); return; } limparEntrada();
     printf("Prioridade (1=alta, 2=media, 3=baixa): "); if (scanf("%d", &prioridade) != 1) { limparEntrada(); return; } limparEntrada();
 
@@ -95,7 +110,8 @@ static void acionarCadastro(void) {
 static void acionarFila(void) {
     char cpf[15];
     printf("CPF do paciente: ");
-    if (!fgets(cpf, sizeof(cpf), stdin)) return; { size_t i=strlen(cpf); if (i && cpf[i-1]=='\n') cpf[i-1]=0; }
+    if (!fgets(cpf, sizeof(cpf), stdin)) return;
+    trim_nl(cpf);
     Paciente* p = buscarPacientePorCPF(g_lista, cpf);
     if (p) { enfileirar(&g_fila, p); printf("%s adicionado à fila.\n", p->nome); }
     else { printf("Paciente não encontrado.\n"); }
@@ -106,8 +122,12 @@ static void acionarAtendimento(void) {
     if (!p) { printf("Fila vazia.\n"); return; }
     printf("Atendendo %s...\n", p->nome);
     char descricao[200], data[20];
-    printf("Descricao do atendimento: "); if (!fgets(descricao, sizeof(descricao), stdin)) return; { size_t i=strlen(descricao); if (i && descricao[i-1]=='\n') descricao[i-1]=0; }
-    printf("Data (YYYY-MM-DD HH:MM): "); if (!fgets(data, sizeof(data), stdin)) return; { size_t i=strlen(data); if (i && data[i-1]=='\n') data[i-1]=0; }
+    printf("Descricao do atendimento: ");
+    if (!fgets(descricao, sizeof(descricao), stdin)) return;
+    trim_nl(descricao);
+    printf("Data (YYYY-MM-DD HH:MM): ");
+    if (!fgets(data, sizeof(data), stdin)) return;
+    trim_nl(data);
     pushAtendimento(&p->historico, descricao, data);
     printf("Atendimento registrado.\n");
 }
@@ -115,7 +135,8 @@ static void acionarAtendimento(void) {
 static void acionarHistorico(void) {
     char cpf[15];
     printf("CPF do paciente: ");
-    if (!fgets(cpf, sizeof(cpf), stdin)) return; { size_t i=strlen(cpf); if (i && cpf[i-1]=='\n') cpf[i-1]=0; }
+    if (!fgets(cpf, sizeof(cpf), stdin)) return;
+    trim_nl(cpf);
     Paciente* p = buscarPacientePorCPF(g_lista, cpf);
     if (p) { mostrarHistorico(&p->historico); }
     else { printf("Paciente não encontrado.\n"); }
@@ -131,8 +152,9 @@ static void acionarPersistencia(void) {
         if (scanf("%d", &op) != 1) { limparEntrada(); continue; }
         limparEntrada();
         if (op == 1) {
-            printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-            if (!fgets(caminho, sizeof(caminho), stdin)) continue; { size_t i=strlen(caminho); if (i && caminho[i-1]=='\n') caminho[i-1]=0; }
+        printf("Caminho (enter= data/persistencia_exemplo.txt): ");
+        if (!fgets(caminho, sizeof(caminho), stdin)) continue;
+        trim_nl(caminho);
             if (!caminho[0]) strcpy(caminho, "data/persistencia_exemplo.txt");
             int rc = salvarPacientesEmArquivo(g_lista, caminho);
             printf(rc==0? "Salvo em '%s'\n" : "Falha ao salvar em '%s'\n", caminho);
@@ -141,7 +163,8 @@ static void acionarPersistencia(void) {
             int ch = getchar(); limparEntrada();
             if (ch!='s' && ch!='S') { printf("Cancelado.\n"); continue; }
             printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-            if (!fgets(caminho, sizeof(caminho), stdin)) continue; { size_t i=strlen(caminho); if (i && caminho[i-1]=='\n') caminho[i-1]=0; }
+            if (!fgets(caminho, sizeof(caminho), stdin)) continue;
+            trim_nl(caminho);
             if (!caminho[0]) strcpy(caminho, "data/persistencia_exemplo.txt");
             // Liberar lista atual e carregar nova
             liberarListaPacientes(&g_lista);

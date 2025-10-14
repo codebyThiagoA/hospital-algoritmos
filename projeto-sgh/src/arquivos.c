@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 #include "arquivos.h"
 #include "paciente.h"
 #include "historico.h"
@@ -67,18 +73,6 @@ static int split_pipe_escaped(char* line, char* fields[], int max) {
 	return count;
 }
 
-// --- Construção/Liberação ---
-static Atendimento* cria_atendimento(const char* data, const char* desc) {
-	Atendimento* a = (Atendimento*)malloc(sizeof(Atendimento));
-	if (!a) return NULL;
-	a->prox = NULL;
-	strncpy(a->data, data ? data : "", sizeof(a->data)-1);
-	a->data[sizeof(a->data)-1] = '\0';
-	strncpy(a->descricao, desc ? desc : "", sizeof(a->descricao)-1);
-	a->descricao[sizeof(a->descricao)-1] = '\0';
-	return a;
-}
-
 // Limpeza completa em caso de erro (historico + pacientes)
 static void libera_lista_total(Paciente* p) {
 	while (p) {
@@ -89,9 +83,56 @@ static void libera_lista_total(Paciente* p) {
 	}
 }
 
+// Garante que os diretórios pais do caminho existam (cria recursivamente)
+static int ensure_parent_dirs(const char* path) {
+	if (!path) return -1;
+	size_t len = strlen(path);
+	if (!len) return 0;
+	// Copia mutável
+	char* buf = (char*)malloc(len + 1);
+	if (!buf) return -1;
+	memcpy(buf, path, len + 1);
+
+	// Encontra o último separador de diretório
+	char* lastSep = NULL;
+	for (char* p = buf; *p; ++p) {
+		if (*p == '/' || *p == '\\') lastSep = p;
+	}
+	if (!lastSep) { free(buf); return 0; } // sem diretórios no caminho
+
+	// Trunca no último separador para obter o diretório pai
+	*lastSep = '\0';
+	if (buf[0] == '\0') { free(buf); return 0; }
+
+	// Cria segmentos progressivamente
+	for (char* p = buf; *p; ++p) {
+		if (*p == '/' || *p == '\\') {
+			char ch = *p; *p = '\0';
+			if (buf[0] != '\0') {
+#ifdef _WIN32
+				_mkdir(buf);
+#else
+				mkdir(buf, 0777);
+#endif
+			}
+			*p = ch;
+		}
+	}
+	// Cria o diretório completo
+#ifdef _WIN32
+	_mkdir(buf);
+#else
+	mkdir(buf, 0777);
+#endif
+	free(buf);
+	return 0;
+}
+
 // --- Serialização ---
 int salvarPacientesEmArquivo(const Paciente* lista, const char* caminho) {
 	if (!caminho) return -1;
+	// Garante que diretórios necessários existam
+	ensure_parent_dirs(caminho);
 	FILE* f = fopen(caminho, "w");
 	if (!f) return -1;
 
@@ -162,8 +203,8 @@ int carregarPacientesDeArquivo(Paciente** listaOut, const char* caminho) {
 		// Parse P|nome|cpf|idade|prioridade|Q
 		char* tmp = line + 2;
 		char* fields[6] = {0};
-		int nf = split_pipe_escaped(tmp, fields, 6);
-		if (nf < 5) { libera_lista(lista); fclose(f); return -1; }
+	int nf = split_pipe_escaped(tmp, fields, 6);
+	if (nf < 5) { libera_lista_total(lista); fclose(f); return -1; }
 		const char* nome = fields[0];
 		const char* cpf = fields[1];
 		int idade = atoi(fields[2]);
