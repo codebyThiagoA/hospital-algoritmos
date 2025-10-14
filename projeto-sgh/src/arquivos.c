@@ -4,24 +4,8 @@
 #include <string.h>
 #include <ctype.h>
 #include "arquivos.h"
-
-// Definições locais mínimas para operar persistência sem depender dos headers externos.
-// Se os módulos de pacientes/histórico fornecerem suas próprias structs, mantenha os
-// mesmos campos/nomes a seguir para compatibilidade.
-typedef struct Atendimento {
-	char data[32];
-	char descricao[256];
-	struct Atendimento* prox;
-} Atendimento;
-
-typedef struct Paciente {
-	char nome[128];
-	char cpf[20];
-	int idade;
-	int prioridade;
-	Atendimento* historico;
-	struct Paciente* prox;
-} Paciente;
+#include "paciente.h"
+#include "historico.h"
 
 // --- Utilidades de string ---
 static void str_escape(const char* src, FILE* out) {
@@ -95,40 +79,11 @@ static Atendimento* cria_atendimento(const char* data, const char* desc) {
 	return a;
 }
 
-static void push_atendimento(Paciente* p, Atendimento* a) {
-	if (!p || !a) return;
-	a->prox = p->historico;
-	p->historico = a;
-}
-
-static Paciente* cria_paciente(const char* nome, const char* cpf, int idade, int prioridade) {
-	Paciente* pac = (Paciente*)malloc(sizeof(Paciente));
-	if (!pac) return NULL;
-	strncpy(pac->nome, nome ? nome : "", sizeof(pac->nome)-1); pac->nome[sizeof(pac->nome)-1] = '\0';
-	strncpy(pac->cpf, cpf ? cpf : "", sizeof(pac->cpf)-1); pac->cpf[sizeof(pac->cpf)-1] = '\0';
-	pac->idade = idade;
-	pac->prioridade = prioridade;
-	pac->historico = NULL;
-	pac->prox = NULL;
-	return pac;
-}
-
-static void append_paciente(Paciente** lista, Paciente* novo) {
-	if (!lista || !novo) return;
-	if (!*lista) { *lista = novo; return; }
-	Paciente* it = *lista;
-	while (it->prox) it = it->prox;
-	it->prox = novo;
-}
-
-static void libera_historico(Atendimento* a) {
-	while (a) { Atendimento* n = a->prox; free(a); a = n; }
-}
-
-static void libera_lista(Paciente* p) {
+// Limpeza completa em caso de erro (historico + pacientes)
+static void libera_lista_total(Paciente* p) {
 	while (p) {
-		Paciente* n = p->prox;
-		libera_historico(p->historico);
+		Paciente* n = p->proximo;
+		limparHistorico(&p->historico);
 		free(p);
 		p = n;
 	}
@@ -142,14 +97,14 @@ int salvarPacientesEmArquivo(const Paciente* lista, const char* caminho) {
 
 	// Contar pacientes
 	int n = 0;
-	for (const Paciente* p = lista; p; p = p->prox) ++n;
+	for (const Paciente* p = lista; p; p = p->proximo) ++n;
 	fprintf(f, "PACIENTES %d\n", n);
 	fputs("# Formato: P|nome|cpf|idade|prioridade|Q\n", f);
 	fputs("#          A|data|descricao (repetido Q vezes)\n", f);
 
-	for (const Paciente* p = lista; p; p = p->prox) {
-		// Contar histórico
-		int q = 0; for (const Atendimento* a = p->historico; a; a = a->prox) ++q;
+	for (const Paciente* p = lista; p; p = p->proximo) {
+		// Contar histórico (pilha LIFO)
+		int q = 0; for (const Atendimento* a = p->historico.topo; a; a = a->prox) ++q;
 
 		fputc('P', f); fputc('|', f);
 		str_escape(p->nome, f); fputc('|', f);
@@ -157,7 +112,7 @@ int salvarPacientesEmArquivo(const Paciente* lista, const char* caminho) {
 		fprintf(f, "%d|%d|%d\n", p->idade, p->prioridade, q);
 
 		// Serializa pilha do topo para base (ordem LIFO)
-		for (const Atendimento* a = p->historico; a; a = a->prox) {
+		for (const Atendimento* a = p->historico.topo; a; a = a->prox) {
 			fputc('A', f); fputc('|', f);
 			str_escape(a->data, f); fputc('|', f);
 			str_escape(a->descricao, f); fputc('\n', f);
@@ -215,25 +170,22 @@ int carregarPacientesDeArquivo(Paciente** listaOut, const char* caminho) {
 		int prioridade = atoi(fields[3]);
 		int q = atoi(fields[4]);
 
-		Paciente* p = cria_paciente(nome, cpf, idade, prioridade);
-		if (!p) { libera_lista(lista); fclose(f); return -1; }
+	Paciente* p = criarPaciente(nome, cpf, idade, prioridade);
+	if (!p) { libera_lista_total(lista); fclose(f); return -1; }
 
 		// Ler Q linhas A|...
 		for (int i = 0; i < q; ++i) {
-			if (!fgets(line, sizeof(line), f)) { libera_lista(lista); fclose(f); return -1; }
+			if (!fgets(line, sizeof(line), f)) { libera_lista_total(lista); fclose(f); return -1; }
 			len = strlen(line); if (len && (line[len-1] == '\n' || line[len-1] == '\r')) line[--len] = '\0';
-			if (line[0] != 'A' || line[1] != '|') { libera_lista(lista); fclose(f); return -1; }
+			if (line[0] != 'A' || line[1] != '|') { libera_lista_total(lista); fclose(f); return -1; }
 			tmp = line + 2;
 			char* af[3] = {0};
 			int na = split_pipe_escaped(tmp, af, 3);
-			if (na < 2) { libera_lista(lista); fclose(f); return -1; }
-			Atendimento* a = cria_atendimento(af[0], af[1]);
-			if (!a) { libera_lista(lista); fclose(f); return -1; }
-			// Push mantém ordem LIFO do arquivo para memória (topo primeiro)
-			push_atendimento(p, a);
+			if (na < 2) { libera_lista_total(lista); fclose(f); return -1; }
+			// Registra no historico do paciente
+			pushAtendimento(&p->historico, af[1], af[0]);
 		}
-
-		append_paciente(&lista, p);
+		adicionarPaciente(&lista, p);
 		++lidos;
 	}
 
