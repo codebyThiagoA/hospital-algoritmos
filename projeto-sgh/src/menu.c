@@ -1,15 +1,68 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#ifdef _WIN32
+#include <stdlib.h> // _fullpath
+#endif
+#include "menu.h"
+#include "paciente.h"
+#include "fila.h"
+#include "historico.h"
+#include "arquivos.h"
+
+// Helpers locais de sanitização
+static void trim_newline(char* s) {
+    if (!s) return;
+    size_t n = strlen(s);
+    while (n && (s[n-1] == '\n' || s[n-1] == '\r')) { s[--n] = '\0'; }
+}
+
+static void trim_spaces(char* s) {
+    if (!s) return;
+    // left trim
+    size_t i = 0;
+    while (s[i] && (s[i] == ' ' || s[i] == '\t')) i++;
+    if (i) memmove(s, s + i, strlen(s + i) + 1);
+    // right trim
+    size_t n = strlen(s);
+    while (n && (s[n-1] == ' ' || s[n-1] == '\t')) s[--n] = '\0';
+}
+
+static void trim_quotes(char* s) {
+    if (!s) return;
+    size_t n = strlen(s);
+    if (n >= 2) {
+        char a = s[0], b = s[n-1];
+        if ((a == '"' && b == '"') || (a == '\'' && b == '\'')) {
+            s[n-1] = '\0';
+            memmove(s, s + 1, n - 1);
+        }
+    }
+}
+
+static void sanitize_path(char* s, const char* def) {
+    trim_newline(s);
+    trim_spaces(s);
+    trim_quotes(s);
+    if (!*s && def) {
+        strcpy(s, def);
+    }
+}
+
+static void print_abs_path(const char* p) {
+#ifdef _WIN32
+    char buf[_MAX_PATH];
+    if (_fullpath(buf, p, _MAX_PATH)) {
+        printf("Caminho absoluto: %s\n", buf);
+    }
+#endif
+}
+
 /**
  * Implementação do menu usando os tipos e funções existentes no projeto,
  * sem alterar outros arquivos. Para evitar inconsistências de tipos,
  * usamos estado interno (globais estáticos) e ignoramos os parâmetros da API.
  */
-#include "paciente.h"
-#include "fila.h"
-#include "historico.h"
-#include "arquivos.h"
 
 // Estado interno do módulo (não expõe para fora)
 static Paciente* g_lista = NULL;
@@ -80,7 +133,62 @@ void loopMenu(void* lista, void* fila) {
             case 4: acionarAtendimento(); break;
             case 5: mostrarFila(&g_fila); break;
             case 6: acionarHistorico(); break;
-            case 7: acionarPersistencia(); break;
+            case 7: {
+                char opc[8];
+                printf("\nPersistência:\n");
+                printf("1) Salvar\n");
+                printf("2) Carregar\n");
+                printf("0) Voltar\n");
+                printf("Escolha: ");
+                if (!fgets(opc, sizeof(opc), stdin)) { break; }
+                trim_newline(opc);
+
+                if (strcmp(opc, "1") == 0) {
+                    char caminho[512] = {0};
+                    printf("Caminho (enter= data/persistencia_exemplo.txt): ");
+                    if (fgets(caminho, sizeof(caminho), stdin)) {
+                        sanitize_path(caminho, "data/persistencia_exemplo.txt");
+                        print_abs_path(caminho);
+                        int rc = salvarPacientesEmArquivo(g_lista, caminho);
+                        if (rc == 0) {
+                            printf("Salvo em '%s'\n", caminho);
+                        } else {
+                            printf("Falha ao salvar em '%s'. Verifique se a pasta existe/permissão.\n", caminho);
+                        }
+                    }
+                } else if (strcmp(opc, "2") == 0) {
+                    char caminho[512] = {0};
+                    char conf[8];
+                    printf("Isso vai substituir a lista atual. Confirmar? (s/N): ");
+                    if (!fgets(conf, sizeof(conf), stdin)) break;
+                    trim_newline(conf);
+                    if (conf[0] != 's' && conf[0] != 'S') { printf("Cancelado.\n"); break; }
+
+                    printf("Caminho (enter= data/persistencia_exemplo.txt): ");
+                    if (fgets(caminho, sizeof(caminho), stdin)) {
+                        sanitize_path(caminho, "data/persistencia_exemplo.txt");
+                        print_abs_path(caminho);
+                        Paciente* nova = NULL;
+                        int rc = carregarPacientesDeArquivo(&nova, caminho);
+                        if (rc == 0) {
+                            // liberar lista atual e trocar ponteiro global
+                            while (g_lista) {
+                                Paciente* n = g_lista->proximo;
+                                limparHistorico(&g_lista->historico);
+                                free(g_lista);
+                                g_lista = n;
+                            }
+                            g_lista = nova;
+                            printf("Carregado de '%s'\n", caminho);
+                        } else {
+                            printf("Falha ao carregar de '%s'. Arquivo não encontrado ou formato inválido.\n", caminho);
+                        }
+                    }
+                } else {
+                    // voltar
+                }
+                break;
+            }
             case 8: printf("Encerrando...\n"); break;
             default: printf("Opcao invalida.\n");
         }
