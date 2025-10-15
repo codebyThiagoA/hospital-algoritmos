@@ -4,7 +4,6 @@
 #ifdef _WIN32
 #include <stdlib.h> // _fullpath
 #endif
-#include "menu.h"
 #include "paciente.h"
 #include "fila.h"
 #include "historico.h"
@@ -74,7 +73,7 @@ static void acionarCadastro(void);
 static void acionarFila(void);
 static void acionarAtendimento(void);
 static void acionarHistorico(void);
-static void acionarPersistencia(void);
+// Persistência será oferecida como duas opções diretas no menu principal
 
 static void trim_nl(char* s) {
     if (!s) return;
@@ -120,8 +119,9 @@ void loopMenu(void* lista, void* fila) {
     printf("4. Atender paciente\n");
     printf("5. Mostrar fila\n");
     printf("6. Historico de paciente\n");
-    printf("7. Persistencia (Salvar/Carregar)\n");
-    printf("8. Sair\n");
+    printf("7. Salvar em arquivo\n");
+    printf("8. Carregar de arquivo\n");
+    printf("9. Sair\n");
     printf("Escolha: ");
         if (scanf("%d", &opcao) != 1) { limparEntrada(); continue; }
         limparEntrada();
@@ -134,65 +134,54 @@ void loopMenu(void* lista, void* fila) {
             case 5: mostrarFila(&g_fila); break;
             case 6: acionarHistorico(); break;
             case 7: {
-                char opc[8];
-                printf("\nPersistência:\n");
-                printf("1) Salvar\n");
-                printf("2) Carregar\n");
-                printf("0) Voltar\n");
-                printf("Escolha: ");
-                if (!fgets(opc, sizeof(opc), stdin)) { break; }
-                trim_newline(opc);
-
-                if (strcmp(opc, "1") == 0) {
-                    char caminho[512] = {0};
-                    printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-                    if (fgets(caminho, sizeof(caminho), stdin)) {
-                        sanitize_path(caminho, "data/persistencia_exemplo.txt");
-                        print_abs_path(caminho);
-                        int rc = salvarPacientesEmArquivo(g_lista, caminho);
-                        if (rc == 0) {
-                            printf("Salvo em '%s'\n", caminho);
-                        } else {
-                            printf("Falha ao salvar em '%s'. Verifique se a pasta existe/permissão.\n", caminho);
-                        }
+                // Salvar diretamente
+                char caminho[512] = {0};
+                printf("Caminho (enter= data/persistencia_exemplo.txt): ");
+                if (fgets(caminho, sizeof(caminho), stdin)) {
+                    sanitize_path(caminho, "data/persistencia_exemplo.txt");
+                    print_abs_path(caminho);
+                    int rc = salvarPacientesEmArquivo(g_lista, caminho);
+                    if (rc == 0) {
+                        printf("Salvo em '%s'\n", caminho);
+                    } else {
+                        printf("Falha ao salvar em '%s'. Verifique se a pasta existe/permissão.\n", caminho);
                     }
-                } else if (strcmp(opc, "2") == 0) {
-                    char caminho[512] = {0};
-                    char conf[8];
-                    printf("Isso vai substituir a lista atual. Confirmar? (s/N): ");
-                    if (!fgets(conf, sizeof(conf), stdin)) break;
-                    trim_newline(conf);
-                    if (conf[0] != 's' && conf[0] != 'S') { printf("Cancelado.\n"); break; }
-
-                    printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-                    if (fgets(caminho, sizeof(caminho), stdin)) {
-                        sanitize_path(caminho, "data/persistencia_exemplo.txt");
-                        print_abs_path(caminho);
-                        Paciente* nova = NULL;
-                        int rc = carregarPacientesDeArquivo(&nova, caminho);
-                        if (rc == 0) {
-                            // liberar lista atual e trocar ponteiro global
-                            while (g_lista) {
-                                Paciente* n = g_lista->proximo;
-                                limparHistorico(&g_lista->historico);
-                                free(g_lista);
-                                g_lista = n;
-                            }
-                            g_lista = nova;
-                            printf("Carregado de '%s'\n", caminho);
-                        } else {
-                            printf("Falha ao carregar de '%s'. Arquivo não encontrado ou formato inválido.\n", caminho);
-                        }
-                    }
-                } else {
-                    // voltar
                 }
                 break;
             }
-            case 8: printf("Encerrando...\n"); break;
+            case 8: {
+                // Carregar diretamente
+                char caminho[512] = {0};
+                char conf[8];
+                printf("Isso vai substituir a lista atual. Confirmar? (s/N): ");
+                if (!fgets(conf, sizeof(conf), stdin)) break;
+                trim_newline(conf);
+                if (conf[0] != 's' && conf[0] != 'S') { printf("Cancelado.\n"); break; }
+                printf("Caminho (enter= data/persistencia_exemplo.txt): ");
+                if (fgets(caminho, sizeof(caminho), stdin)) {
+                    sanitize_path(caminho, "data/persistencia_exemplo.txt");
+                    print_abs_path(caminho);
+                    Paciente* nova = NULL;
+                    int rc = carregarPacientesDeArquivo(&nova, caminho);
+                    if (rc == 0) {
+                        while (g_lista) {
+                            Paciente* n = g_lista->proximo;
+                            limparHistorico(&g_lista->historico);
+                            free(g_lista);
+                            g_lista = n;
+                        }
+                        g_lista = nova;
+                        printf("Carregado de '%s'\n", caminho);
+                    } else {
+                        printf("Falha ao carregar de '%s'. Arquivo não encontrado ou formato inválido.\n", caminho);
+                    }
+                }
+                break;
+            }
+            case 9: printf("Encerrando...\n"); break;
             default: printf("Opcao invalida.\n");
         }
-    } while (opcao != 8);
+    } while (opcao != 9);
 
     liberarListaPacientes(&g_lista);
 }
@@ -250,36 +239,4 @@ static void acionarHistorico(void) {
     else { printf("Paciente não encontrado.\n"); }
 }
 
-static void acionarPersistencia(void) {
-    int op = 0; char caminho[260];
-    do {
-        printf("\n=== Persistencia ===\n");
-        printf("1. Salvar pacientes em arquivo\n");
-        printf("2. Carregar pacientes do arquivo\n");
-        printf("0. Voltar\n> ");
-        if (scanf("%d", &op) != 1) { limparEntrada(); continue; }
-        limparEntrada();
-        if (op == 1) {
-        printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-        if (!fgets(caminho, sizeof(caminho), stdin)) continue;
-        trim_nl(caminho);
-            if (!caminho[0]) strcpy(caminho, "data/persistencia_exemplo.txt");
-            int rc = salvarPacientesEmArquivo(g_lista, caminho);
-            printf(rc==0? "Salvo em '%s'\n" : "Falha ao salvar em '%s'\n", caminho);
-        } else if (op == 2) {
-            printf("Ao carregar, a lista atual sera descartada. Confirmar? (s/N): ");
-            int ch = getchar(); limparEntrada();
-            if (ch!='s' && ch!='S') { printf("Cancelado.\n"); continue; }
-            printf("Caminho (enter= data/persistencia_exemplo.txt): ");
-            if (!fgets(caminho, sizeof(caminho), stdin)) continue;
-            trim_nl(caminho);
-            if (!caminho[0]) strcpy(caminho, "data/persistencia_exemplo.txt");
-            // Liberar lista atual e carregar nova
-            liberarListaPacientes(&g_lista);
-            Paciente* nova = NULL;
-            int rc = carregarPacientesDeArquivo(&nova, caminho);
-            if (rc==0) { g_lista = nova; printf("Carregado de '%s'\n", caminho); }
-            else { printf("Falha ao carregar de '%s'\n", caminho); }
-        }
-    } while (op != 0);
-}
+// acionarPersistencia removido - opções diretas no menu

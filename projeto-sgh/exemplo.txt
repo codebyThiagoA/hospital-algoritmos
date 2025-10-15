@@ -1,0 +1,8 @@
+PACIENTES 2
+# Formato: P|nome|cpf|idade|prioridade|Q
+#          A|data|descricao (repetido Q vezes)
+P|Maria Clara|123.456.789-00|30|1|2
+A|2025-10-10 10:30|Clinico geral
+A|2025-10-10 09:00|Triagem inicial
+P|Joao Silva|987.654.321-11|45|2|1
+A|2025-10-11 14:00|Coleta exames
