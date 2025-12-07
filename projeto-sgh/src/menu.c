@@ -8,6 +8,7 @@
 #include "fila.h"
 #include "historico.h"
 #include "arquivos.h"
+#include "grafo.h"
 
 // Helpers locais de sanitização
 static void trim_newline(char* s) {
@@ -67,6 +68,7 @@ static void print_abs_path(const char* p) {
 static Paciente* g_lista = NULL;
 static Fila g_fila;
 static int g_demo_inicializado = 0;
+static Grafo* g_grafo = NULL;
 
 // Prototipos locais para evitar declaracoes implicitas
 static void acionarCadastro(void);
@@ -90,6 +92,32 @@ static void carregarDemoSeNecessario(void) {
     g_demo_inicializado = 1;
     // Iniciar fila
     filaInit(&g_fila);
+    // Construir grafo de setores
+    g_grafo = criarGrafo(6);
+    if (g_grafo) {
+        definirVertice(g_grafo, 0, "Recepcao");
+        definirVertice(g_grafo, 1, "Triagem");
+        definirVertice(g_grafo, 2, "Raio-X");
+        definirVertice(g_grafo, 3, "Laboratorio");
+        definirVertice(g_grafo, 4, "Consultorio");
+        definirVertice(g_grafo, 5, "Farmacia");
+        // conexões (peso 1 ou mais):
+        adicionarAresta(g_grafo, 0, 1, 1); // Recepção -> Triagem
+        adicionarAresta(g_grafo, 1, 4, 1); // Triagem -> Consultorio
+        adicionarAresta(g_grafo, 1, 2, 2); // Triagem -> Raio-X
+        adicionarAresta(g_grafo, 2, 4, 2); // Raio-X -> Consultorio
+        adicionarAresta(g_grafo, 4, 3, 1); // Consultorio -> Laboratorio
+        adicionarAresta(g_grafo, 3, 5, 1); // Laboratorio -> Farmacia
+        adicionarAresta(g_grafo, 4, 5, 1); // Consultorio -> Farmacia
+        // opcionalmente bidirecionais
+        adicionarAresta(g_grafo, 1, 0, 1);
+        adicionarAresta(g_grafo, 4, 1, 1);
+        adicionarAresta(g_grafo, 2, 1, 2);
+        adicionarAresta(g_grafo, 4, 2, 2);
+        adicionarAresta(g_grafo, 3, 4, 1);
+        adicionarAresta(g_grafo, 5, 3, 1);
+        adicionarAresta(g_grafo, 5, 4, 1);
+    }
     // Popular alguns pacientes e históricos
     Paciente* a = criarPaciente("Maria Clara", "123.456.789-00", 30, 1);
     Paciente* b = criarPaciente("Joao Silva", "987.654.321-11", 45, 2);
@@ -121,7 +149,9 @@ void loopMenu(void* lista, void* fila) {
     printf("6. Historico de paciente\n");
     printf("7. Salvar em arquivo\n");
     printf("8. Carregar de arquivo\n");
-    printf("9. Sair\n");
+    printf("9. Mostrar mapa do hospital\n");
+    printf("10. Menor caminho entre setores\n");
+    printf("11. Sair\n");
     printf("Escolha: ");
         if (scanf("%d", &opcao) != 1) { limparEntrada(); continue; }
         limparEntrada();
@@ -178,12 +208,42 @@ void loopMenu(void* lista, void* fila) {
                 }
                 break;
             }
-            case 9: printf("Encerrando...\n"); break;
+            case 9: {
+                if (g_grafo) mostrarSetores(g_grafo);
+                else printf("Grafo nao inicializado.\n");
+                break;
+            }
+            case 10: {
+                if (!g_grafo) { printf("Grafo nao inicializado.\n"); break; }
+                printf("Origem (indice): ");
+                int o; if (scanf("%d", &o) != 1) { limparEntrada(); break; }
+                limparEntrada();
+                printf("Destino (indice): ");
+                int d; if (scanf("%d", &d) != 1) { limparEntrada(); break; }
+                limparEntrada();
+                int caminho[64];
+                int len = menorCaminhoBFS(g_grafo, o, d, caminho, 64);
+                if (len == 0) {
+                    printf("Sem caminho via BFS. Tentando Dijkstra...\n");
+                    len = menorCaminhoDijkstra(g_grafo, o, d, caminho, 64);
+                }
+                if (len > 0) {
+                    printf("Rota (%d passos): ", len-1);
+                    for (int i = 0; i < len; ++i) {
+                        printf("%s%s", g_grafo->v[caminho[i]].nome, (i+1<len)?" -> ":"\n");
+                    }
+                } else {
+                    printf("Nao foi possivel encontrar caminho.\n");
+                }
+                break;
+            }
+            case 11: printf("Encerrando...\n"); break;
             default: printf("Opcao invalida.\n");
         }
-    } while (opcao != 9);
+    } while (opcao != 11);
 
     liberarListaPacientes(&g_lista);
+    liberarGrafo(g_grafo);
 }
 
 static void acionarCadastro(void) {
