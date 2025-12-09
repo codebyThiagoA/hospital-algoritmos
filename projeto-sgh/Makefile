@@ -22,7 +22,10 @@ APP_SRCS := \
   $(SRC_DIR)/paciente.c \
   $(SRC_DIR)/fila.c \
   $(SRC_DIR)/historico.c \
-  $(SRC_DIR)/arquivos.c
+  $(SRC_DIR)/arquivos.c \
+  $(SRC_DIR)/grafo.c \
+  $(SRC_DIR)/heap.c \
+  $(SRC_DIR)/arvore.c
 
 APP_OBJS := $(APP_SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 

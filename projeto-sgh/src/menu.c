@@ -2,7 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #ifdef _WIN32
-#include <stdlib.h> 
+#include <stdlib.h>
+#include <direct.h>
+#define MAX_PATH_LEN 260
 #endif
 #include "paciente.h"
 #include "fila.h"
@@ -10,6 +12,7 @@
 #include "arquivos.h"
 #include "grafo.h"
 #include "heap.h"
+#include "arvore.h"
 
 
 static void trim_newline(char* s) {
@@ -52,8 +55,8 @@ static void sanitize_path(char* s, const char* def) {
 
 static void print_abs_path(const char* p) {
 #ifdef _WIN32
-    char buf[_MAX_PATH];
-    if (_fullpath(buf, p, _MAX_PATH)) {
+    char buf[MAX_PATH_LEN];
+    if (_fullpath(buf, p, MAX_PATH_LEN)) {
         printf("Caminho absoluto: %s\n", buf);
     }
 #endif
@@ -65,6 +68,7 @@ static Fila g_fila;
 static Heap g_heap;
 static int g_demo_inicializado = 0;
 static Grafo* g_grafo = NULL;
+static NoArvore* g_arvore = NULL;
 
 
 static void acionarCadastro(void);
@@ -156,7 +160,8 @@ void loopMenu(void* lista, void* fila) {
     printf("11. Atender por prioridade (HEAP)\n");
     printf("12. Ver fila de prioridade\n");
     printf("13. Modificar prioridade\n");
-    printf("14. Sair\n");
+    printf("14. Listar pacientes ordenados (Arvore)\n");
+    printf("15. Sair\n");
     printf("Escolha: ");
         if (scanf("%d", &opcao) != 1) { limparEntrada(); continue; }
         limparEntrada();
@@ -207,10 +212,15 @@ void loopMenu(void* lista, void* fila) {
                         }
                         g_lista = nova;
                         
+                        // Reconstruir heap e árvore
                         inicializarHeap(&g_heap);
+                        liberarArvore(g_arvore);
+                        g_arvore = NULL;
+                        
                         Paciente* atual = g_lista;
                         while (atual) {
                             inserirHeap(&g_heap, atual);
+                            g_arvore = inserirNaArvore(g_arvore, atual);
                             atual = atual->proximo;
                         }
                         printf("Carregado de '%s'\n", caminho);
@@ -252,13 +262,22 @@ void loopMenu(void* lista, void* fila) {
             case 11: acionarAtendimentoPrioridade(); break;
             case 12: exibirHeap(&g_heap); break;
             case 13: acionarModificarPrioridade(); break;
-            case 14: printf("Encerrando...\n"); break;
+            case 14: 
+                printf("\n--- Pacientes Ordenados por CPF ---\n");
+                if (!g_arvore) {
+                    printf("Nenhum paciente cadastrado na arvore.\n");
+                } else {
+                    percorrerInOrder(g_arvore);
+                }
+                break;
+            case 15: printf("Encerrando...\n"); break;
             default: printf("Opcao invalida.\n");
         }
-    } while (opcao != 14);
+    } while (opcao != 15);
 
     liberarListaPacientes(&g_lista);
     liberarGrafo(g_grafo);
+    liberarArvore(g_arvore);
 }
 
 static void acionarCadastro(void) {
@@ -294,6 +313,7 @@ static void acionarCadastro(void) {
     if (p) { 
         adicionarPaciente(&g_lista, p); 
         inserirHeap(&g_heap, p);
+        g_arvore = inserirNaArvore(g_arvore, p);
         printf("Paciente cadastrado!\n"); 
     }
     else { printf("Falha ao cadastrar.\n"); }
