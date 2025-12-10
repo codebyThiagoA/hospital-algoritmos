@@ -58,7 +58,7 @@ void mostrarSetores(const Grafo* g) {
     }
 }
 
-// Reconstrói caminho usando predecessor
+
 static int reconstruir(int origem, int destino, const int* prev, int caminho[], int max) {
     int stack[256]; int top = 0;
     for (int v = destino; v != -1; v = prev[v]) {
@@ -66,7 +66,7 @@ static int reconstruir(int origem, int destino, const int* prev, int caminho[], 
         stack[top++] = v;
         if (v == origem) break;
     }
-    if (top == 0 || stack[top-1] != origem) return 0; // sem caminho
+    if (top == 0 || stack[top-1] != origem) return 0; 
     int len = (top < max) ? top : max;
     for (int i = 0; i < len; ++i) caminho[i] = stack[top-1-i];
     return len;
@@ -85,7 +85,7 @@ int menorCaminhoBFS(const Grafo* g, int origem, int destino, int caminho[], int 
         int u = q[h++];
         for (NoAdj* p = g->v[u].adj; p; p=p->prox) {
             int v = p->destino;
-            int w = 1; // BFS assume peso 1
+            int w = 1; 
             if (dist[v] == INT_MAX) {
                 dist[v] = dist[u] + w;
                 prev[v] = u;

@@ -3,7 +3,7 @@
 #include <string.h>
 #include "arvore.h"
 
-// Função auxiliar para criar um novo nó
+
 static NoArvore* criarNo(Paciente *paciente) {
     NoArvore *novo = (NoArvore*) malloc(sizeof(NoArvore));
     if (!novo) return NULL;
@@ -13,7 +13,7 @@ static NoArvore* criarNo(Paciente *paciente) {
     return novo;
 }
 
-// Inserir um paciente na árvore binária de busca por CPF
+
 NoArvore* inserirNaArvore(NoArvore *raiz, Paciente *paciente) {
     if (!paciente) return raiz;
     
@@ -28,12 +28,12 @@ NoArvore* inserirNaArvore(NoArvore *raiz, Paciente *paciente) {
     } else if (cmp > 0) {
         raiz->direita = inserirNaArvore(raiz->direita, paciente);
     }
-    // Se cmp == 0, o CPF já existe, não insere duplicado
+   
     
     return raiz;
 }
 
-// Buscar um paciente na árvore por CPF
+
 Paciente* buscarNaArvore(NoArvore *raiz, const char *cpf) {
     if (!raiz) return NULL;
     
@@ -48,7 +48,7 @@ Paciente* buscarNaArvore(NoArvore *raiz, const char *cpf) {
     }
 }
 
-// Função auxiliar para encontrar o nó com o menor valor (mais à esquerda)
+
 static NoArvore* encontrarMinimo(NoArvore *no) {
     while (no && no->esquerda) {
         no = no->esquerda;
@@ -56,7 +56,7 @@ static NoArvore* encontrarMinimo(NoArvore *no) {
     return no;
 }
 
-// Remover um paciente da árvore por CPF
+
 NoArvore* removerDaArvore(NoArvore *raiz, const char *cpf) {
     if (!raiz) return NULL;
     
@@ -67,9 +67,9 @@ NoArvore* removerDaArvore(NoArvore *raiz, const char *cpf) {
     } else if (cmp > 0) {
         raiz->direita = removerDaArvore(raiz->direita, cpf);
     } else {
-        // Nó encontrado - casos de remoção
         
-        // Caso 1: Nó folha ou com apenas um filho
+        
+       
         if (!raiz->esquerda) {
             NoArvore *temp = raiz->direita;
             free(raiz);
@@ -80,21 +80,20 @@ NoArvore* removerDaArvore(NoArvore *raiz, const char *cpf) {
             return temp;
         }
         
-        // Caso 2: Nó com dois filhos
-        // Encontra o sucessor in-order (menor nó da subárvore direita)
+       
         NoArvore *temp = encontrarMinimo(raiz->direita);
         
-        // Copia o conteúdo do sucessor para este nó
+       
         raiz->paciente = temp->paciente;
         
-        // Remove o sucessor
+       
         raiz->direita = removerDaArvore(raiz->direita, temp->paciente->cpf);
     }
     
     return raiz;
 }
 
-// Percorrer a árvore em ordem (in-order) e listar pacientes ordenados por CPF
+
 void percorrerInOrder(NoArvore *raiz) {
     if (!raiz) return;
     
@@ -107,7 +106,7 @@ void percorrerInOrder(NoArvore *raiz) {
     percorrerInOrder(raiz->direita);
 }
 
-// Liberar toda a árvore
+
 void liberarArvore(NoArvore *raiz) {
     if (!raiz) return;
     
@@ -116,7 +115,6 @@ void liberarArvore(NoArvore *raiz) {
     free(raiz);
 }
 
-// Obter altura da árvore binária de busca
 int obterAlturaArvore(NoArvore *raiz) {
     if (!raiz) return 0;
     

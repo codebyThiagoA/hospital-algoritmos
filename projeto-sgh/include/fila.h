@@ -2,11 +2,11 @@
 #define FILA_H
 
 
-#include "paciente.h"  // Para usar struct Paciente
+#include "paciente.h"  
 
 
 typedef struct NoFila {
-    Paciente *paciente;       // Aponta para um paciente já cadastrado
+    Paciente *paciente;      
     struct NoFila *prox;
 } NoFila;
 
@@ -17,7 +17,7 @@ typedef struct {
 } Fila;
 
 
-// Funções
+
 void filaInit(Fila *f);
 int filaVazia(Fila *f);
 void enfileirar(Fila *f, Paciente *p);

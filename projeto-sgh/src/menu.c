@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #ifdef _WIN32
@@ -94,11 +95,11 @@ static void limparEntrada(void) {
 static void carregarDemoSeNecessario(void) {
     if (g_demo_inicializado) return;
     g_demo_inicializado = 1;
-    // Iniciar fila
+   
     filaInit(&g_fila);
-    // Iniciar heap
+  
     inicializarHeap(&g_heap);
-    // Construir grafo de setores
+    
     g_grafo = criarGrafo(6);
     if (g_grafo) {
         definirVertice(g_grafo, 0, "Recepcao");
@@ -108,13 +109,13 @@ static void carregarDemoSeNecessario(void) {
         definirVertice(g_grafo, 4, "Consultorio");
         definirVertice(g_grafo, 5, "Farmacia");
         
-        adicionarAresta(g_grafo, 0, 1, 1); // Recepção -> Triagem
-        adicionarAresta(g_grafo, 1, 4, 1); // Triagem -> Consultorio
-        adicionarAresta(g_grafo, 1, 2, 2); // Triagem -> Raio-X
-        adicionarAresta(g_grafo, 2, 4, 2); // Raio-X -> Consultorio
-        adicionarAresta(g_grafo, 4, 3, 1); // Consultorio -> Laboratorio
-        adicionarAresta(g_grafo, 3, 5, 1); // Laboratorio -> Farmacia
-        adicionarAresta(g_grafo, 4, 5, 1); // Consultorio -> Farmacia
+        adicionarAresta(g_grafo, 0, 1, 1); 
+        adicionarAresta(g_grafo, 1, 4, 1); 
+        adicionarAresta(g_grafo, 1, 2, 2); 
+        adicionarAresta(g_grafo, 2, 4, 2); 
+        adicionarAresta(g_grafo, 4, 3, 1); 
+        adicionarAresta(g_grafo, 3, 5, 1); 
+        adicionarAresta(g_grafo, 4, 5, 1); 
         
         adicionarAresta(g_grafo, 1, 0, 1);
         adicionarAresta(g_grafo, 4, 1, 1);
@@ -144,41 +145,42 @@ static void carregarDemoSeNecessario(void) {
 
 
 void loopMenu(void* lista, void* fila) {
-    (void)lista; (void)fila; 
+    (void)lista; (void)fila;
     int opcao = 0;
     carregarDemoSeNecessario();
     do {
-    printf("\n===== SISTEMA HOSPITALAR =====\n");
-    printf("1. Cadastrar paciente\n");
-    printf("2. Listar pacientes\n");
-    printf("3. Adicionar paciente a fila\n");
-    printf("4. Atender paciente (FIFO)\n");
-    printf("5. Mostrar fila\n");
-    printf("6. Historico de paciente\n");
-    printf("7. Salvar em arquivo\n");
-    printf("8. Carregar de arquivo\n");
-    printf("9. Mostrar mapa do hospital\n");
-    printf("10. Menor caminho entre setores\n");
-    printf("11. Atender por prioridade (HEAP)\n");
-    printf("12. Ver fila de prioridade\n");
-    printf("13. Modificar prioridade\n");
-    printf("14. Listar pacientes ordenados (Arvore BST)\n");
-    printf("15. Listar pacientes ordenados (Arvore AVL)\n");
-    printf("16. Comparar altura (BST vs AVL)\n");
-    printf("17. Sair\n");
-    printf("Escolha: ");
+        printf("\n===== SISTEMA HOSPITALAR =====\n");
+        printf("1.  Cadastrar paciente\n");
+        printf("2.  Listar pacientes (ordem de cadastro)\n");
+        printf("3.  Adicionar paciente a fila (FIFO)\n");
+        printf("4.  Atender paciente (FIFO)\n");
+        printf("5.  Mostrar fila (FIFO)\n");
+        printf("6.  Historico de paciente\n");
+        printf("7.  Salvar pacientes em arquivo\n");
+        printf("8.  Carregar pacientes de arquivo\n");
+        printf("9.  Mostrar mapa do hospital (grafo)\n");
+        printf("10. Menor caminho entre setores (grafo)\n");
+        printf("11. Atender por prioridade (HEAP)\n");
+        printf("12. Ver fila de prioridade (HEAP)\n");
+        printf("13. Modificar prioridade (HEAP)\n");
+        printf("14. Listar pacientes ordenados (Arvore BST)\n");
+        printf("15. Listar pacientes ordenados (Arvore AVL)\n");
+        printf("16. Comparar altura (BST vs AVL)\n");
+        printf("17. Sair\n");
+        printf("Escolha: ");
+
         if (scanf("%d", &opcao) != 1) { limparEntrada(); continue; }
         limparEntrada();
 
         switch (opcao) {
-            case 1: acionarCadastro(); break;
-            case 2: listarPacientes(g_lista); break;
-            case 3: acionarFila(); break;
-            case 4: acionarAtendimento(); break;
-            case 5: mostrarFila(&g_fila); break;
-            case 6: acionarHistorico(); break;
-            case 7: {
-                
+            case 1:  acionarCadastro(); break;
+            case 2:  listarPacientes(g_lista); break;
+            case 3:  acionarFila(); break;
+            case 4:  acionarAtendimento(); break;
+            case 5:  mostrarFila(&g_fila); break;
+            case 6:  acionarHistorico(); break;
+
+            case 7: { 
                 char caminho[512] = {0};
                 printf("Caminho (enter= data/persistencia_exemplo.txt): ");
                 if (fgets(caminho, sizeof(caminho), stdin)) {
@@ -188,19 +190,22 @@ void loopMenu(void* lista, void* fila) {
                     if (rc == 0) {
                         printf("Salvo em '%s'\n", caminho);
                     } else {
-                        printf("Falha ao salvar em '%s'. Verifique se a pasta existe/permissão.\n", caminho);
+                        printf("Falha ao salvar em '%s'. Verifique se a pasta existe/permissao.\n", caminho);
                     }
                 }
                 break;
             }
-            case 8: {
-                
+
+            case 8: { 
                 char caminho[512] = {0};
                 char conf[8];
                 printf("Isso vai substituir a lista atual. Confirmar? (s/N): ");
                 if (!fgets(conf, sizeof(conf), stdin)) break;
                 trim_newline(conf);
-                if (conf[0] != 's' && conf[0] != 'S') { printf("Cancelado.\n"); break; }
+                if (conf[0] != 's' && conf[0] != 'S') {
+                    printf("Cancelado.\n");
+                    break;
+                }
                 printf("Caminho (enter= data/persistencia_exemplo.txt): ");
                 if (fgets(caminho, sizeof(caminho), stdin)) {
                     sanitize_path(caminho, "data/persistencia_exemplo.txt");
@@ -208,6 +213,7 @@ void loopMenu(void* lista, void* fila) {
                     Paciente* nova = NULL;
                     int rc = carregarPacientesDeArquivo(&nova, caminho);
                     if (rc == 0) {
+                       
                         while (g_lista) {
                             Paciente* n = g_lista->proximo;
                             limparHistorico(&g_lista->historico);
@@ -215,14 +221,14 @@ void loopMenu(void* lista, void* fila) {
                             g_lista = n;
                         }
                         g_lista = nova;
+
                         
-                        // Reconstruir heap e árvores
                         inicializarHeap(&g_heap);
                         liberarArvore(g_arvore);
                         liberarAVL(g_arvore_avl);
                         g_arvore = NULL;
                         g_arvore_avl = NULL;
-                        
+
                         Paciente* atual = g_lista;
                         while (atual) {
                             inserirHeap(&g_heap, atual);
@@ -232,17 +238,19 @@ void loopMenu(void* lista, void* fila) {
                         }
                         printf("Carregado de '%s'\n", caminho);
                     } else {
-                        printf("Falha ao carregar de '%s'. Arquivo não encontrado ou formato inválido.\n", caminho);
+                        printf("Falha ao carregar de '%s'. Arquivo nao encontrado ou formato invalido.\n", caminho);
                     }
                 }
                 break;
             }
-            case 9: {
+
+            case 9: { 
                 if (g_grafo) mostrarSetores(g_grafo);
                 else printf("Grafo nao inicializado.\n");
                 break;
             }
-            case 10: {
+
+            case 10: { 
                 if (!g_grafo) { printf("Grafo nao inicializado.\n"); break; }
                 printf("Origem (indice): ");
                 int o; if (scanf("%d", &o) != 1) { limparEntrada(); break; }
@@ -250,6 +258,7 @@ void loopMenu(void* lista, void* fila) {
                 printf("Destino (indice): ");
                 int d; if (scanf("%d", &d) != 1) { limparEntrada(); break; }
                 limparEntrada();
+
                 int caminho[64];
                 int len = menorCaminhoBFS(g_grafo, o, d, caminho, 64);
                 if (len == 0) {
@@ -259,17 +268,20 @@ void loopMenu(void* lista, void* fila) {
                 if (len > 0) {
                     printf("Rota (%d passos): ", len-1);
                     for (int i = 0; i < len; ++i) {
-                        printf("%s%s", g_grafo->v[caminho[i]].nome, (i+1<len)?" -> ":"\n");
+                        printf("%s%s", g_grafo->v[caminho[i]].nome,
+                               (i+1 < len) ? " -> " : "\n");
                     }
                 } else {
                     printf("Nao foi possivel encontrar caminho.\n");
                 }
                 break;
             }
+
             case 11: acionarAtendimentoPrioridade(); break;
             case 12: exibirHeap(&g_heap); break;
             case 13: acionarModificarPrioridade(); break;
-            case 14: 
+
+            case 14:
                 printf("\n--- Pacientes Ordenados por CPF (BST) ---\n");
                 if (!g_arvore) {
                     printf("Nenhum paciente cadastrado na arvore BST.\n");
@@ -277,6 +289,7 @@ void loopMenu(void* lista, void* fila) {
                     percorrerInOrder(g_arvore);
                 }
                 break;
+
             case 15:
                 printf("\n--- Pacientes Ordenados por CPF (AVL) ---\n");
                 if (!g_arvore_avl) {
@@ -285,23 +298,25 @@ void loopMenu(void* lista, void* fila) {
                     percorrerInOrderAVL(g_arvore_avl);
                 }
                 break;
+
             case 16: {
                 printf("\n--- Comparacao de Altura ---\n");
                 int alt_bst = 0, alt_avl = 0;
-                if (g_arvore) {
-                    // Calcular altura BST (função auxiliar necessária)
-                    alt_bst = obterAlturaArvore(g_arvore);
-                }
-                if (g_arvore_avl) {
-                    alt_avl = obterAlturaAVL(g_arvore_avl);
-                }
+                if (g_arvore)  alt_bst  = obterAlturaArvore(g_arvore);
+                if (g_arvore_avl) alt_avl = obterAlturaAVL(g_arvore_avl);
                 printf("Altura BST: %d\n", alt_bst);
                 printf("Altura AVL: %d\n", alt_avl);
-                printf("Balanceamento AVL: %s\n", verificarBalanceamento(g_arvore_avl) ? "SIM" : "NAO");
+                printf("Balanceamento AVL: %s\n",
+                       verificarBalanceamento(g_arvore_avl) ? "SIM" : "NAO");
                 break;
             }
-            case 17: printf("Encerrando...\n"); break;
-            default: printf("Opcao invalida.\n");
+
+            case 17:
+                printf("Encerrando...\n");
+                break;
+
+            default:
+                printf("Opcao invalida.\n");
         }
     } while (opcao != 17);
 
