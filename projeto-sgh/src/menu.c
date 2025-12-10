@@ -13,6 +13,7 @@
 #include "grafo.h"
 #include "heap.h"
 #include "arvore.h"
+#include "arvore_avl.h"
 
 
 static void trim_newline(char* s) {
@@ -69,6 +70,7 @@ static Heap g_heap;
 static int g_demo_inicializado = 0;
 static Grafo* g_grafo = NULL;
 static NoArvore* g_arvore = NULL;
+static NoAVL* g_arvore_avl = NULL;
 
 
 static void acionarCadastro(void);
@@ -160,8 +162,10 @@ void loopMenu(void* lista, void* fila) {
     printf("11. Atender por prioridade (HEAP)\n");
     printf("12. Ver fila de prioridade\n");
     printf("13. Modificar prioridade\n");
-    printf("14. Listar pacientes ordenados (Arvore)\n");
-    printf("15. Sair\n");
+    printf("14. Listar pacientes ordenados (Arvore BST)\n");
+    printf("15. Listar pacientes ordenados (Arvore AVL)\n");
+    printf("16. Comparar altura (BST vs AVL)\n");
+    printf("17. Sair\n");
     printf("Escolha: ");
         if (scanf("%d", &opcao) != 1) { limparEntrada(); continue; }
         limparEntrada();
@@ -212,15 +216,18 @@ void loopMenu(void* lista, void* fila) {
                         }
                         g_lista = nova;
                         
-                        // Reconstruir heap e árvore
+                        // Reconstruir heap e árvores
                         inicializarHeap(&g_heap);
                         liberarArvore(g_arvore);
+                        liberarAVL(g_arvore_avl);
                         g_arvore = NULL;
+                        g_arvore_avl = NULL;
                         
                         Paciente* atual = g_lista;
                         while (atual) {
                             inserirHeap(&g_heap, atual);
                             g_arvore = inserirNaArvore(g_arvore, atual);
+                            g_arvore_avl = inserirNaAVL(g_arvore_avl, atual);
                             atual = atual->proximo;
                         }
                         printf("Carregado de '%s'\n", caminho);
@@ -263,21 +270,45 @@ void loopMenu(void* lista, void* fila) {
             case 12: exibirHeap(&g_heap); break;
             case 13: acionarModificarPrioridade(); break;
             case 14: 
-                printf("\n--- Pacientes Ordenados por CPF ---\n");
+                printf("\n--- Pacientes Ordenados por CPF (BST) ---\n");
                 if (!g_arvore) {
-                    printf("Nenhum paciente cadastrado na arvore.\n");
+                    printf("Nenhum paciente cadastrado na arvore BST.\n");
                 } else {
                     percorrerInOrder(g_arvore);
                 }
                 break;
-            case 15: printf("Encerrando...\n"); break;
+            case 15:
+                printf("\n--- Pacientes Ordenados por CPF (AVL) ---\n");
+                if (!g_arvore_avl) {
+                    printf("Nenhum paciente cadastrado na arvore AVL.\n");
+                } else {
+                    percorrerInOrderAVL(g_arvore_avl);
+                }
+                break;
+            case 16: {
+                printf("\n--- Comparacao de Altura ---\n");
+                int alt_bst = 0, alt_avl = 0;
+                if (g_arvore) {
+                    // Calcular altura BST (função auxiliar necessária)
+                    alt_bst = obterAlturaArvore(g_arvore);
+                }
+                if (g_arvore_avl) {
+                    alt_avl = obterAlturaAVL(g_arvore_avl);
+                }
+                printf("Altura BST: %d\n", alt_bst);
+                printf("Altura AVL: %d\n", alt_avl);
+                printf("Balanceamento AVL: %s\n", verificarBalanceamento(g_arvore_avl) ? "SIM" : "NAO");
+                break;
+            }
+            case 17: printf("Encerrando...\n"); break;
             default: printf("Opcao invalida.\n");
         }
-    } while (opcao != 15);
+    } while (opcao != 17);
 
     liberarListaPacientes(&g_lista);
     liberarGrafo(g_grafo);
     liberarArvore(g_arvore);
+    liberarAVL(g_arvore_avl);
 }
 
 static void acionarCadastro(void) {
@@ -314,7 +345,8 @@ static void acionarCadastro(void) {
         adicionarPaciente(&g_lista, p); 
         inserirHeap(&g_heap, p);
         g_arvore = inserirNaArvore(g_arvore, p);
-        printf("Paciente cadastrado!\n"); 
+        g_arvore_avl = inserirNaAVL(g_arvore_avl, p);
+        printf("Paciente cadastrado em ambas as arvores!\n"); 
     }
     else { printf("Falha ao cadastrar.\n"); }
 }

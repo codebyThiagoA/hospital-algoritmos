@@ -115,3 +115,13 @@ void liberarArvore(NoArvore *raiz) {
     liberarArvore(raiz->direita);
     free(raiz);
 }
+
+// Obter altura da árvore binária de busca
+int obterAlturaArvore(NoArvore *raiz) {
+    if (!raiz) return 0;
+    
+    int altEsq = obterAlturaArvore(raiz->esquerda);
+    int altDir = obterAlturaArvore(raiz->direita);
+    
+    return (altEsq > altDir ? altEsq : altDir) + 1;
+}
