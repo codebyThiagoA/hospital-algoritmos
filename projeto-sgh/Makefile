@@ -25,12 +25,16 @@ APP_SRCS := \
   $(SRC_DIR)/arquivos.c \
   $(SRC_DIR)/grafo.c \
   $(SRC_DIR)/heap.c \
-  $(SRC_DIR)/arvore.c
+  $(SRC_DIR)/arvore.c \
+  $(SRC_DIR)/arvore_avl.c
 
 APP_OBJS := $(APP_SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 TEST_HIST_SRC := tests/teste_historico.c
 TEST_HIST_BIN := $(BUILD_DIR)/teste_historico$(EXE)
+
+TEST_AVL_SRC := tests/test_avl.c
+TEST_AVL_BIN := $(BUILD_DIR)/test_avl$(EXE)
 
 .PHONY: all 1 2 3 4 build run clean tests
 
@@ -66,9 +70,14 @@ clean:
 # 4) Tests
 4: tests
 
-tests: $(BUILD_DIR) $(TEST_HIST_BIN)
+tests: $(BUILD_DIR) $(TEST_HIST_BIN) $(TEST_AVL_BIN)
 	@echo Executando teste: teste_historico
 	$(TEST_HIST_BIN)
+	@echo Executando teste: test_avl
+	$(TEST_AVL_BIN)
 
 $(TEST_HIST_BIN): $(TEST_HIST_SRC) $(SRC_DIR)/paciente.c $(SRC_DIR)/historico.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(TEST_AVL_BIN): $(TEST_AVL_SRC) $(SRC_DIR)/paciente.c $(SRC_DIR)/arvore_avl.c $(SRC_DIR)/historico.c
 	$(CC) $(CFLAGS) $^ -o $@

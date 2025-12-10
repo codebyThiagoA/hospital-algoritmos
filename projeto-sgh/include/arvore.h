@@ -16,5 +16,6 @@ Paciente* buscarNaArvore(NoArvore *raiz, const char *cpf);
 NoArvore* removerDaArvore(NoArvore *raiz, const char *cpf);
 void percorrerInOrder(NoArvore *raiz);
 void liberarArvore(NoArvore *raiz);
+int obterAlturaArvore(NoArvore *raiz);
 
 #endif
